@@ -2,7 +2,7 @@
 A simply utility for incrementing counters stored in sqlite tables.
 For god's sake don't put this on a server.
 """
-import click
+from __future__ import print_function
 import sqlite3
 import os.path as op
 
@@ -14,7 +14,7 @@ def get_conn():
     return conn
 
 
-def check_table(variable_name: str) -> bool:
+def check_table(variable_name):
     """Checks if the specified table exists"""
     fetch_table = "select name from sqlite_master where type='table' and name=:variable;"
     result = get_conn().execute(fetch_table, {"variable": variable_name}).fetchall()
@@ -22,44 +22,39 @@ def check_table(variable_name: str) -> bool:
     return exists
 
 
-def ensure_table(variable_name: str):
+def ensure_table(variable_name):
     """Ensures the table exists"""
-    if check_table(variable_name):
-        return
-    else:
-        return create_table(variable_name)
+    if not check_table(variable_name):
+        return create_variable(variable_name)
 
 
-def create_table(variable_name: str):
+def create_variable(variable_name):
     """Creates the required sqlite table."""
     get_conn().execute("create table {}(timestamp integer)".format(variable_name))
 
 
-def delete_variable(variable_name: str):
+def delete_variable(variable_name):
     """Deletes a variable"""
-    get_conn().execute("drop table {}".format(variable_name))
+    try:
+        get_conn().execute("drop table {}".format(variable_name))
+    except sqlite3.OperationalError:
+        print("Variable does not exist.")
+        pass
 
 
-def increment_variable(variable_name: str):
+def increment_variable(variable_name):
     """Increments the count for the variable."""
+    ensure_table(variable_name)
     get_conn().execute("insert into {} values(strftime('%s','now'))".format(variable_name))
 
 
-def variable_count(variable_name: str):
+def variable_count(variable_name):
     """Counts the variable"""
     ensure_table(variable_name)
     result = get_conn().execute("select count(timestamp) from {}".format(variable_name))
     return result.fetchall()[0][0]
 
 
-
 def dump_to_json():
     """Stores all data as a JSON file."""
-
-
-def main():
-    print("Executed")
-
-
-if __name__ == "__main__":
-    main()
+    raise NotImplementedError
