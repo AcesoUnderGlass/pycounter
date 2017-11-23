@@ -5,12 +5,13 @@ For god's sake don't put this on a server.
 from __future__ import print_function
 import sqlite3
 import os.path as op
+import sys
 
 
 def get_conn():
     """Returns connection to the database."""
     loc = op.join(op.expanduser("~"), ".counter.db")
-    conn = sqlite3.connect(loc)
+    conn = sqlite3.connect(loc, timeout=10)
     return conn
 
 
@@ -45,16 +46,32 @@ def delete_variable(variable_name):
 def increment_variable(variable_name):
     """Increments the count for the variable."""
     ensure_table(variable_name)
-    get_conn().execute("insert into {} values(strftime('%s','now'))".format(variable_name))
+    conn = get_conn()
+    conn.execute("insert into {} values(strftime('%s','now'))".format(variable_name))
+    conn.commit()
+
+
 
 
 def variable_count(variable_name):
     """Counts the variable"""
     ensure_table(variable_name)
-    result = get_conn().execute("select count(timestamp) from {}".format(variable_name))
+    conn = get_conn()
+    result = conn.execute("select count(timestamp) from {}".format(variable_name))
+
     return result.fetchall()[0][0]
 
 
 def dump_to_json():
     """Stores all data as a JSON file."""
     raise NotImplementedError
+
+if __name__ == "__main__":
+    command = sys.argv[1]
+    variable = sys.argv[2]
+
+    if command == 'increment':
+        print('incrementing ' + variable)
+        increment_variable(variable)
+    print(variable_count(variable))
+
